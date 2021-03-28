@@ -1,0 +1,44 @@
+.els-loader {
+    background: url(loader.svg);
+    width: 50px;
+    height: 35px;
+}
+
+.map__addresses{
+    padding-left: 0px;
+    overflow: auto;
+    max-height: 346px;
+}
+.map__address__active{
+    color: #007bff;
+}
+.map__address__list__li {
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    line-height: 1.1em;
+}
+.map__address__list__li .text-danger {
+    font-size: 0.8em;
+}
+.map__address__list__li .important-text{
+    color: #dc3545;
+    font-weight: bold;
+}
+.esl-comment {
+    right: 0;
+    position: absolute;
+    top: 0;
+    margin: 3px;
+}
+.hidden {
+    display:none;
+}
+.btn-w-100{
+    width: 100%;
+}
+.btn:disabled{
+    cursor: not-allowed;
+}
