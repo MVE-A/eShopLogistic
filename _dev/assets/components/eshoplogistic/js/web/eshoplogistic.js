@@ -6,6 +6,7 @@ window.onload = function() {
                 totalCost: 'esl_cost',
                 cartCost: 'esl-cart-cost',
                 deliveryCost: 'esl-delivery-cost',
+                deliveryTime: 'esl-delivery-time',
                 deliveryMode: 'esl-delivery-mode',
                 addressTitle: 'esl-address',
                 fieldTerminal: 'esl-address-field-terminal',
@@ -41,6 +42,11 @@ window.onload = function() {
             }
         },
         msGetCost: function (data) {
+
+            if(!data.serviceName) {
+                let pvz = document.querySelector('.esl-delivery-address')
+                pvz.closest('.esl-total-item').classList.add('hidden');
+            }
             
             for (const [key, value] of Object.entries(this.items.getCostResult)) {
                 
@@ -51,7 +57,7 @@ window.onload = function() {
                     _flclst = _fv.closest('.esl-total-item')
                     
                     if(data[key]) {
-                        
+
                         let crr = '' 
                         if(key == 'deliveryCost') {
                             if(Number(data[key]) > 0) {
@@ -80,10 +86,21 @@ window.onload = function() {
                                     _fv.innerHTML = _fv.dataset[data.delivery.mode]+' '+data.serviceName 
                                 }
                                 break
-                                
+
+                            case 'deliveryTime':
+                                if(!data.serviceName) {
+                                    _flclst.classList.add('hidden');
+                                }
+                                break
+
                             case 'fieldTerminal':
-                                if(data.delivery.mode == 'terminal') { _fv.classList.remove('hidden'); }
-                                else { _fv.classList.add('hidden'); }
+                                if(data.serviceName) {
+                                    if (data.delivery.mode == 'terminal') {
+                                        _fv.classList.remove('hidden');
+                                    } else {
+                                        _fv.classList.add('hidden');
+                                    }
+                                }
                                 break
                                 
                             case 'paymentNote': 
@@ -323,11 +340,10 @@ window.onload = function() {
                 current =  document.querySelector('input[name=delivery]:checked'),
                 ainfo = document.querySelector('.esl-delivery-address')
 
-                  
             if(!address) {
                 
                 terminal.value = ''
-                
+
                 if(ainfo) {
                     ainfo.textContent = ''
                     ainfo.closest('.esl-total-item').classList.add('hidden'); 
@@ -356,9 +372,9 @@ window.onload = function() {
 
                 if(ainfo) {
                     ainfo.textContent = address
-                    ainfo.closest('p').classList.remove('hidden'); 
+                    ainfo.closest('.esl-total-item').classList.remove('hidden');
                 }
-                
+
                 let current_ainfo = current.closest('.esl-block')
                 if(current_ainfo) {
                     current_ainfo.querySelector('.els-terminals a').textContent = 'Изменить пункт самовывоза'
@@ -394,15 +410,13 @@ window.onload = function() {
     miniShop2.Callbacks.add('Cart.remove.response.success', 'eShopLogisticCartRemove', function (response) {
         esl.reload()
     })
-    
 
     miniShop2.Callbacks.add('Order.getcost.response.success', 'eShopLogisticGetCost', function (response) {
         if(typeof response.data.delivery == 'object') {
             esl.msGetCost(response.data)
         }
     })
-    
-    
+
     miniShop2.Callbacks.add('Order.add.response.success', 'eShopLogisticAdd', function (response) {
         if(typeof response.data.delivery == 'string') {
             esl.setAddress()
@@ -445,6 +459,7 @@ window.onload = function() {
 
 
     let modal = {
+        backdrop: null,
         initLayout: {
           createRoot: function (){
               let root = document.createElement('div')
@@ -483,6 +498,7 @@ window.onload = function() {
               buttonClose.setAttribute('data-dismiss','modal')
               buttonClose.setAttribute('aria-label','Close')
               buttonClose.classList.add('close')
+              buttonClose.addEventListener('click', modal.close)
               dom.appendChild(buttonClose)
               return buttonClose;
           },
@@ -512,7 +528,13 @@ window.onload = function() {
               dom.appendChild(col)
               return
           },
-
+            createBackDrop: function (){
+                let backdrop = document.createElement('div')
+                backdrop.classList.add('modal-backdrop','fade')
+                backdrop.setAttribute('style', 'display: none')
+                document.body.appendChild(backdrop)
+                modal.backdrop = backdrop
+            },
         },
         createModalBootstrap: function (){
             if(this.checkOnInit()) return;
@@ -525,6 +547,8 @@ window.onload = function() {
                 body = this.initLayout.createBody(content),
                 row = this.initLayout.createRow(body),
                 colMap = this.initLayout.createColForMap(row);
+
+            this.initLayout.createBackDrop()
         },
         checkOnInit: function (){
             if(document.getElementById(this.idModal)){
@@ -532,11 +556,37 @@ window.onload = function() {
             }
             return false
         },
+
         open: function (){
-            $('#'+ID_MODAL).modal('show')
+            let modalLocal = document.getElementById(ID_MODAL);
+            document.body.classList.add('modal-open')
+            document.body.setAttribute('style','padding-right:17px')
+            modal.backdrop.removeAttribute('style')
+
+            setTimeout(() => {
+                modalLocal.setAttribute('style','display:block;padding-left:17px')
+                setTimeout(() => {
+                    modalLocal.classList.add('show')
+                    modal.backdrop.classList.add('show')
+                },200)
+            },100)
+
         },
         close: function (){
-            $('#'+ID_MODAL).modal('hide')
+            let modalLocal = document.getElementById(ID_MODAL);
+
+            modalLocal.classList.remove('show')
+            setTimeout(() => {
+                modal.backdrop.classList.remove('show')
+                setTimeout(() => {
+                    document.body.classList.remove('modal-open')
+                    document.body.removeAttribute('style')
+                    modal.backdrop.setAttribute('style', 'display: none')
+                    modalLocal.removeAttribute('style')
+                    document.dispatchEvent(new CustomEvent('eshoplogistic.hide.modal'))
+                },200)
+            },100)
+
         },
         destroy: function (){
             if(this.checkOnInit()){
@@ -560,7 +610,7 @@ window.onload = function() {
             let container = document.createElement('div'),
                 modalBody = document.getElementById(ID_MODAL).querySelector('.modal-body  #'+YANDEX_MAP_CONTAINER_ID_FOR_MAP);
             container.setAttribute('id',YANDEX_MAP_CONTAINER_ID)
-            container.setAttribute('style','width: 100%')
+            container.setAttribute('style','width: 100%;height:400px')
             modalBody.appendChild(container)
         },
         initMap: function (event){
@@ -651,8 +701,8 @@ window.onload = function() {
     }
     
     document.addEventListener('click', bindEvents.clickOnTerminals, false);
-    
-    $('#'+ID_MODAL).on('hide.bs.modal', bindEvents.onCloseModal);
+
+    document.addEventListener('eshoplogistic.hide.modal', bindEvents.onCloseModal);
     
     document.addEventListener('onSelectAddress', function (event){
         esl.setAddress(event.detail.address)
